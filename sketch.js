@@ -1,10 +1,3 @@
-//Arrays that hold point coordinates
-let xVals;
-let yVals;
-let zVals;
-
-let curveQueue; //holds each curve object
-let hueVal; //color of each curve
 
 //Sliders and corresponding slider variables
 let refreshRate;
@@ -13,6 +6,10 @@ let circleSize;
 let circleSizeSlider;
 let fadeRate;
 let fadeRateSlider;
+let graphButton;
+let graphSwitch;
+
+let logMap;
 
 function setup() {
   createCanvas(1420, 800, WEBGL); //Create 3D canvas
@@ -26,12 +23,16 @@ function setup() {
   circleSizeSlider.position(20, 50);
   fadeRateSlider = createSlider(0, 100, 1);
   fadeRateSlider.position(20, 80);
+  graphButton = createButton('Poincare/Bifurcation');
+  graphButton.position(20,110);
+  graphButton.mousePressed(changeGraphSwitch)
+
   
   //Populate Queue with Chaos Curves
-  curveQueue = new SimpleQueue(500);
+  //curveQueue = new SimpleQueue(500);
   
   //INSERT CHAOS FUNCTION CALL BELOW
-  logisticMap();
+  logMap = new LogisticMap(3.45, 4.0, 0.005); //3.6,4.0,0.005
 }
 
 //Called every frame
@@ -47,44 +48,111 @@ function draw() {
   orbitControl(); //Allow user to navigate 3D space
 
   //Method draws curves to canvas
-  curveQueue.displayContents(frameCount%refreshRate);
+  logMap.displayContents(frameCount%refreshRate);
 }
 
-/* Generates logistic map values.
- * Stores coordinates in xVals,yVals,zVals (via helper).
- * Creates curve objects and populates curve array.
- */
-function logisticMap(){
-  for (let i=3.6; i<4.0; i+=0.005){
-    hueVal = ((i-3.6)/0.4)*160;
-    logisticMapHelper(i);
-    curveQueue.enqueue(new Curve(xVals,yVals,zVals,hueVal));
-  }
+function changeGraphSwitch() {
+  graphSwitch = !graphSwitch;
 }
 
-/* Helper function for logistic map.
- * Input: growth rate (r).
- * Stores coordinates in xVals,yVals,zVals.
- */
-function logisticMapHelper(rVal){
-  let x = 0.5; //initial population
-  let r = rVal; //growth rate
-  xVals = [];
-  yVals = [];
-  zVals = [];
-  //Run and discard first 100 generations
-  for (let i=0; i<100; i++) {
-    x = r * x * (1 - x);
+class ChaosFunction {
+  constructor(startParam,endParam,incVal){
+    this.setup();
+    this.param_0 = startParam;
+    this.param_n = endParam;
+    this.step = incVal;
+    this.bifurcationSets = [];
+    this.x = 0;
+    this.curveQueue = new SimpleQueue(500);
+    this.bifQueue = new SimpleQueue(500);
+    this.generateChaos();
   }
-  //Record population attractors of final 50 generations
-  for (let i=0; i<50; i++) {
-    x = r * x * (1 - x);
-    xVals.push((x*width)-(width/2)); //Transform values with canvas dimensions
+  generateChaos(){
+    let hueVal;
+    for (let i=this.param_0; i<this.param_n; i+=this.step){
+      hueVal = ((i-this.param_0)/(this.param_n-this.param_0))*160;
+      this.indVar = i;
+      this.setup();
+      this.run(100);
+      let range = this.run(50);
+      let poincareStruct = this.generatePoincare(range);
+      let bifStruct = this.generateBifurcation(range,500);
+      this.curveQueue.enqueue(new Curve(poincareStruct,hueVal));
+      this.bifQueue.enqueue(new Curve(bifStruct, hueVal));
+    }
   }
-  //Store t, t+1, t+2 attractor values in coordinate arrays
-  yVals = xVals.slice(1,-1);
-  zVals = xVals.slice(2);
-  xVals = xVals.slice(0,-2);
+
+  generatePoincare(range){
+    let dimAdjustArr = [];
+    for (let i=0; i<range.length; i++) {
+      dimAdjustArr.push((range[i]*width)-(width/2));
+    }
+    return {xVals: dimAdjustArr.slice(0,-2),
+            yVals: dimAdjustArr.slice(1,-1),
+            zVals: dimAdjustArr.slice(2)};
+  }
+
+  generateBifurcation(range,samplingSize){
+    let xValues = [];
+    let yValues = [];
+    let zValues = [];
+    let extremaVals = this.findLocalExtrema(range, samplingSize);
+    for (let i=0; i<extremaVals.length; i++){
+      let dimX = (((this.indVar-this.param_0)/(this.param_n-this.param_0))*width)-(width/2);
+      let dimY = (height/2) - (extremaVals[i]*height);
+      xValues.push(dimX);
+      yValues.push(dimY);
+      zValues.push(0);
+    }
+    return {xVals: xValues, yVals: yValues, zVals: zValues};
+  }
+
+  findLocalExtrema(rangeSet, extremaLimit){
+    let j = 1;
+    let extremaSet = [];
+    while (extremaLimit && (j<(rangeSet.length-1))) {
+      if ((rangeSet[j-1]<rangeSet[j] && rangeSet[j+1]<rangeSet[j]) ||
+          (rangeSet[j-1]>rangeSet[j] && rangeSet[j+1]>rangeSet[j])) {
+        extremaSet.push(rangeSet[j]);
+        extremaLimit--;
+      }
+      j++;
+    }
+    if (extremaSet.length == 0){
+      extremaSet = [rangeSet[-1]];
+    }
+    return extremaSet;
+  }
+
+  run(runLength){
+    var valSet = [];
+    for (let i=0; i<runLength; i++){
+      this.f();
+      valSet.push(this.x);
+    }
+    return valSet;
+  }
+
+  displayContents(refreshNum){
+    if (graphSwitch) {
+      this.bifQueue.displayContents(refreshNum);
+    } else {
+      this.curveQueue.displayContents(refreshNum);
+    }
+  }
+
+  f(){}
+
+  setup(){}
+}
+
+class LogisticMap extends ChaosFunction {
+  f(){
+    this.x = this.indVar * this.x * (1 - this.x);
+  }
+  setup(){
+    this.x = 0.5;
+  }
 }
 
 /* Curve Object: colored, fading, regenerating spheres
@@ -96,10 +164,10 @@ function logisticMapHelper(rVal){
  */
 class Curve {
   
-  constructor(xCoords,yCoords,zCoords, hueNum){
-    this.xSet = xCoords;
-    this.ySet = yCoords;
-    this.zSet = zCoords;
+  constructor(coordStruct, hueNum){
+    this.xSet = coordStruct.xVals;
+    this.ySet = coordStruct.yVals;
+    this.zSet = coordStruct.zVals;
     this.hue = hueNum;
     this.lifespan = 200;
   }
