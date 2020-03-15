@@ -7,16 +7,18 @@ let circleSizeSlider;
 let fadeRate;
 let fadeRateSlider;
 let graphButton;
-let graphSwitch;
+let graphButtonVal;
 
+//Chaos Object Declarations Below
 let logMap;
 
+//P5js calls setup() once at start of program
 function setup() {
   createCanvas(1420, 800, WEBGL); //Create 3D canvas
   colorMode(HSB, 200); //Visibile spectrum (0=Red, 200=Violet)
   noStroke(); //No outlines on shapes
   
-  //Create and Position Sliders
+  //Create and Position Sliders and Buttons
   refreshRateSlider = createSlider(0, 100, 10);
   refreshRateSlider.position(20, 20);
   circleSizeSlider = createSlider(0, 100, 2);
@@ -25,14 +27,10 @@ function setup() {
   fadeRateSlider.position(20, 80);
   graphButton = createButton('Poincare/Bifurcation');
   graphButton.position(20,110);
-  graphButton.mousePressed(changeGraphSwitch)
-
+  graphButton.mousePressed(changeGraphButton)
   
-  //Populate Queue with Chaos Curves
-  //curveQueue = new SimpleQueue(500);
-  
-  //INSERT CHAOS FUNCTION CALL BELOW
-  logMap = new LogisticMap(3.45, 4.0, 0.005); //3.6,4.0,0.005
+  //Chaos Object Instantiations Below
+  logMap = new LogisticMap(3.45, 4.0, 0.005);
 }
 
 //Called every frame
@@ -51,18 +49,65 @@ function draw() {
   logMap.displayContents(frameCount%refreshRate);
 }
 
-function changeGraphSwitch() {
-  graphSwitch = !graphSwitch;
+//Event handler for graph switch
+function changeGraphButton() {
+  graphButtonVal = !graphButtonVal;
 }
 
+/* Base Class for Chaos Functions
+ * - Container for Poincare and Bifurcation data structures
+ * - Generates graph data upon construction. 
+ * - Draws curves to canvas upon method call displayContents.
+ * 
+ * Fields:   param_0 - first initial condition value to generate curve for
+ *           param_n - last initial condition value to generate curve for
+ *           step - step size to iterate over initial condition vals
+ *           x - current value of x in chaos function (f(x))
+ *           curveQueue - contains Curve objects for drawing Poincare plot
+ *           bifQueue - contains Curve objects for drawing bifurcation diagram
+ *           this.indVar - independent variable (initial parameter) in function
+ *           this.yMin - minimum Y value
+ *           this.yMax - maximum Y value
+ * 
+ * Methods:  constructor(startParam,endParam,incVal):
+ *              - assign params to fields (param_0, param_n, step)
+ *              - instantiate queues and populate them with generateChaos
+ *           generateChaos():
+ *              - iterate over all initial parameter values
+ *              - run function for that value
+ *              - generate bifurcation and poincare curves
+ *           generatePoincare(range):
+ *              - range: y-values for function's final 50 generations
+ *              - shift arrays to reflect t, t+1, t+2 sets
+ *              - return: struct containing x, y, z sets
+ *           generateBifurcation(range, samplingSize):
+ *              - range: y-values for function's final 50 generations
+ *              - samplingSize: number of extrema to generate coordinates for
+ *              - populate bifurcation domain and range (and z set of 0s)
+ *              - return: struct containing x, y, z sets
+ *           findLocalExtrema(rangeSet, extremaLimit):
+ *              - rangeSet: range to scan for extrema
+ *              - extremaLimit: maximum amount of extrema to return
+ *              - return: array of local extrema
+ *           run(runLength):
+ *              - runLength: domain to run function over
+ *              - return: range generated running function
+ *           displayContents(refreshNum):
+ *              - refreshNum: frameCount iterated value that refreshes fading curves
+ *              - draw contents to canvas
+ *           f():
+ *              - base function
+ *              - child classes must override
+ *           setup():
+ *              - declare initial paramater values and inital x value
+ *              - child classes must override
+ */
 class ChaosFunction {
   constructor(startParam,endParam,incVal){
     this.setup();
     this.param_0 = startParam;
     this.param_n = endParam;
     this.step = incVal;
-    this.bifurcationSets = [];
-    this.x = 0;
     this.curveQueue = new SimpleQueue(500);
     this.bifQueue = new SimpleQueue(500);
     this.generateChaos();
@@ -84,8 +129,9 @@ class ChaosFunction {
 
   generatePoincare(range){
     let dimAdjustArr = [];
+    //Transform all values with canvas dimensions
     for (let i=0; i<range.length; i++) {
-      dimAdjustArr.push((range[i]*width)-(width/2));
+      dimAdjustArr.push((((range[i]-this.yMin)/(this.yMax-this.yMin))*width)-(width/2));
     }
     return {xVals: dimAdjustArr.slice(0,-2),
             yVals: dimAdjustArr.slice(1,-1),
@@ -98,6 +144,7 @@ class ChaosFunction {
     let zValues = [];
     let extremaVals = this.findLocalExtrema(range, samplingSize);
     for (let i=0; i<extremaVals.length; i++){
+      // WEBGL canvas dimension transformations
       let dimX = (((this.indVar-this.param_0)/(this.param_n-this.param_0))*width)-(width/2);
       let dimY = (height/2) - (extremaVals[i]*height);
       xValues.push(dimX);
@@ -134,7 +181,7 @@ class ChaosFunction {
   }
 
   displayContents(refreshNum){
-    if (graphSwitch) {
+    if (graphButtonVal) {
       this.bifQueue.displayContents(refreshNum);
     } else {
       this.curveQueue.displayContents(refreshNum);
@@ -143,15 +190,25 @@ class ChaosFunction {
 
   f(){}
 
-  setup(){}
+  setup(){
+    this.x = 0;
+    this.yMin = 0;
+    this.yMax = 1;
+  }
 }
 
+/* Child class for logistic map chaos function
+ * f(): logistic population growth function
+ * setup(): declare 50% max population and population floor and max as 0 and 1.
+ */
 class LogisticMap extends ChaosFunction {
   f(){
     this.x = this.indVar * this.x * (1 - this.x);
   }
   setup(){
     this.x = 0.5;
+    this.yMin = 0;
+    this.yMax = 1;
   }
 }
 
