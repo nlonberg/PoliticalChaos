@@ -276,8 +276,8 @@ class rosslerSys extends continuousSystem{
 
 class lorenzSys extends continuousSystem{
   setLimits(){
-    this.yMin = -50;
-    this.yMax = 50;
+    this.yMin = -70;
+    this.yMax = 70;
     this.vars = [28,10,8/3];
   }
   f(){

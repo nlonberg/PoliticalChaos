@@ -63,24 +63,31 @@ function draw() {
   //Method draws curves to canvas
   switch (funcSelVal){
     case ('Logistic Map'):
+      logMap = new LogisticMap(2.4,3,.005);
       logMap.displayContents(modFrameVal);
       break;
     case ('Aizawa Attractor'):
+      logMap = new aisSys(.08,.13,.001);
       logMap.displayContents(modFrameVal);
       break;
     case ('Lorenz System'):
+      logMap = new lorenzSys(8/3-.1,8+.1,.001);
       logMap.displayContents(modFrameVal);
       break;
     case ('Burke-Shaw Chaos'):
+      logMap = new burkeSys(4,5,.001);
       logMap.displayContents(modFrameVal);
       break;
     case ("Arnold's Cat Map"):
+      logMap = new arnSys(3.5,4,.001);
       logMap.displayContents(modFrameVal);
       break;
     case ('Rossler Attractor'):
+      logMap = new rosslerSys(5.5,6,.001);
       logMap.displayContents(modFrameVal);
       break;
     case ('Chen Attractor'):
+      logMap = new chenSys(25,30,.01);
       logMap.displayContents(modFrameVal);
       break;
   }
