@@ -8,6 +8,8 @@ let fadeRate;
 let fadeRateSlider;
 let graphButton;
 let graphButtonVal;
+let funcSel;
+let funcSelVal;
 
 //Chaos Object Declarations Below
 let logMap;
@@ -27,7 +29,16 @@ function setup() {
   fadeRateSlider.position(20, 80);
   graphButton = createButton('Poincare/Bifurcation');
   graphButton.position(20,110);
-  graphButton.mousePressed(changeGraphButton)
+  graphButton.mousePressed(changeGraphButton);
+  funcSel = createSelect();
+  funcSel.option('Logistic Map');
+  funcSel.option('Aizawa Attractor');
+  funcSel.option('Lorenz System');
+  funcSel.option('Burke-Shaw Chaos');
+  funcSel.option("Arnold's Cat Map");
+  funcSel.option('Rossler Attractor');
+  funcSel.option('Chen Attractor');
+  funcSel.position(20,140);
   
   //Chaos Object Instantiations Below
   logMap = new aisSys(.08, .13, .001);
@@ -47,8 +58,33 @@ function draw() {
 
   orbitControl(); //Allow user to navigate 3D space
 
+  let modFrameVal = frameCount%refreshRate;
+  funcSelVal = funcSel.value();
+
   //Method draws curves to canvas
-  logMap.displayContents(frameCount%refreshRate);
+  switch (funcSelVal){
+    case ('Logistic Map'):
+      logMap.displayContents(modFrameVal);
+      break;
+    case ('Aizawa Attractor'):
+      logMap.displayContents(modFrameVal);
+      break;
+    case ('Lorenz System'):
+      logMap.displayContents(modFrameVal);
+      break;
+    case ('Burke-Shaw Chaos'):
+      logMap.displayContents(modFrameVal);
+      break;
+    case ("Arnold's Cat Map"):
+      logMap.displayContents(modFrameVal);
+      break;
+    case ('Rossler Attractor'):
+      logMap.displayContents(modFrameVal);
+      break;
+    case ('Chen Attractor'):
+      logMap.displayContents(modFrameVal);
+      break;
+  }
 }
 
 //Event handler for graph switch
