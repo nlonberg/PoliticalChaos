@@ -42,7 +42,6 @@ function setup() {
   
   //Chaos Object Instantiations Below
   logMap = new aisSys(.08, .13, .001);
-  //logMap = new LogisticMap( 3.45, 4.0, 0.005);
  
 }
 

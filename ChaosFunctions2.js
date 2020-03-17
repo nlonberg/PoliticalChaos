@@ -66,7 +66,7 @@ class ChaosFunction {
         this.indVar = i;
         this.setup();
         this.run(100);
-        let range = this.run(2000);
+        let range = this.run(3000);
         if (i%allowOrbitCount<this.step){
             let orbitStruct = this.generateVisualOrbit(range);
             this.curveQueue.enqueue(new Curve(orbitStruct,hueVal));
@@ -174,8 +174,8 @@ class ChaosFunction {
     setup(){
       let X0 = [.5];
       this.X = X0;
-      this.yMin = -10;
-      this.yMax = 10;
+      this.yMin = 0;
+      this.yMax = 1;
       this.minDim = 0;
       this.maxDim = 0;
     }
@@ -186,48 +186,104 @@ class ChaosFunction {
     }
   }
   
-  class aisSys extends ChaosFunction{
+  class continuousSystem extends ChaosFunction{
     setup(){
-      let X0 = [0,.1,0];
+      let X0 = [.1,.1,.05];
       this.X = X0;
-      this.yMin = -5;
-      this.yMax = 5;
       this.minDim = 1;
       this.maxDim = 0;
       this.dt = .01;
+      this.setLimits();
+    }
+    next(dx,dy,dz){
+      let x = this.X[0]+dx*this.dt;
+      let y = this.X[1]+dy*this.dt;
+      let z = this.X[2]+dz*this.dt;
+      this.X = [x,y,z]; 
+    }
+  }
+
+  class aisSys extends continuousSystem{
+    setLimits(){
+      this.yMin = -5;
+      this.yMax = 5;
       this.vars = [.95,.7,.6,3.5,.25,.1];
     }
     f(){
         var dx = (this.X[2]-this.vars[1]) * this.X[0] - this.vars[3]*this.X[1];
         var dy = this.vars[3] * this.X[0] + (this.X[2]-this.vars[1]) * this.X[1];
         var dz = this.vars[2] + (this.vars[0]*this.X[2]) - (Math.pow(this.X[2],3)/3) - (Math.pow(this.X[0],2)+Math.pow(this.X[1],2))*(1+this.vars[4]*this.X[2]) + (this.indVar*this.X[2]*Math.pow(this.X[0],3));
-        let x = this.X[0]+dx*this.dt;
-        let y = this.X[1]+dy*this.dt;
-        let z = this.X[2]+dz*this.dt;
-        this.X = [x,y,z]; 
-    
-    }
+        this.next(dx,dy,dz);
+      }
 }
 
-class arnSys extends ChaosFunction{
-    setup(){
-      let X0 = [0,.1,0];
-      this.X = X0;
+class arnSys extends continuousSystem{
+    setLimits(){
       this.yMin = -50;
       this.yMax = 50;
-      this.minDim = 1;
-      this.maxDim = 0;
-      this.dt = .007;
       this.vars = [5,3.8];
     }
     f(){
         var dx = this.X[1];
         var dy = this.X[2];
         var dz = this.vars[0]*this.X[0] - this.indVar*this.X[1] - this.X[2] - this.X[0]**3;
-        let x = this.X[0]+dx*this.dt;
-        let y = this.X[1]+dy*this.dt;
-        let z = this.X[2]+dz*this.dt;
-        this.X = [x,y,z]; 
-    
+        this.next(dx,dy,dz);
     }
+}
+
+class burkeSys extends continuousSystem{
+  setLimits(){
+    this.yMin = -5;
+    this.yMax = 5;
+    this.vars = [10,4.272];
+  }
+  f(){
+      var dx = -1*this.vars[0]*(this.X[0]+this.X[1]);
+      var dy = -1*this.X[1]-this.vars[0]*this.X[0]*this.X[2];
+      var dz = this.indVar+this.vars[0]*this.X[0]*this.X[1];
+      this.next(dx,dy,dz);
+  }
+}
+
+class chenSys extends continuousSystem{
+  setLimits(){
+    this.yMin = -100;
+    this.yMax = 100;
+    this.vars = [40,3,28];
+  }
+  f(){
+      var dx = this.vars[0]*(this.X[1]-this.X[0]);
+      var dy = (this.indVar-this.vars[0])*this.X[0]-this.X[0]*this.X[2]+this.indVar*this.X[1];
+      var dz = this.X[0]*this.X[1]-this.vars[1]*this.X[2];
+      this.next(dx,dy,dz);
+  }
+}
+
+class rosslerSys extends continuousSystem{
+  setLimits(){
+    this.yMin = -10;
+    this.yMax = 10;
+    this.vars = [.2,.2,5.7];
+  }
+  f(){
+    var dx = -1*this.X[1]-this.X[2];
+    var dy = this.X[0]+this.vars[0]*this.X[1];
+    var dz = this.vars[1]+this.X[2]*(this.X[0]-this.indVar);
+    this.next(dx,dy,dz);
+  }
+}
+
+
+class lorenzSys extends continuousSystem{
+  setLimits(){
+    this.yMin = -50;
+    this.yMax = 50;
+    this.vars = [28,10,8/3];
+  }
+  f(){
+    var dx = this.indVar*(this.X[1]-this.X[0]);
+    var dy = this.X[0]*(this.vars[0]-this.X[2])-this.X[1];
+    var dz = this.X[0]*this.X[1]-this.indVar*this.X[2];
+    this.next(dx,dy,dz);
+  }
 }
